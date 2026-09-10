@@ -23,7 +23,7 @@ def read_json_lines(path):
 
 def read_yaml(path, encoding='utf-8'):
     with open(path, 'r', encoding=encoding) as file:
-        return yaml.load(file.read())
+        return yaml.safe_load(file.read())
 
 
 def read_lines(path, encoding='utf-8', return_list=False):

@@ -17,6 +17,7 @@ from actions import Actions
 from nltk.parse import CoreNLPDependencyParser
 
 joint_config = read_yaml('joint_config.yaml')
+
 parser = argparse.ArgumentParser(description='this is a description')
 parser.add_argument('--seed', '-s', required=False, type=int, default=joint_config['random_seed'])
 args = parser.parse_args()

@@ -19,7 +19,7 @@ class Actions(object):
         self.shift_id = action_dict[Actions.shift]
 
         self.act_id_to_str = {v: k for k, v in action_dict.items()}
-        self.act_str_to_id = action_dict
+        self.act_str_to_id = action_dicta
 
     def to_act_str(self, act_id):
         return self.act_id_to_str[act_id]
