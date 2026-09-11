@@ -1,0 +1,4 @@
+2026-09-10 18:43:09,085 - transition - INFO - Loading data...
+2026-09-10 18:43:09,169 - transition - INFO - cur_dataset_dir: data/jsons/json_format/
+2026-09-10 18:43:09,169 - transition - INFO - Sent size train: 100, dev: 100, test:100
+2026-09-10 18:43:09,169 - transition - INFO - Loading pretrained from: data/pickle/word_vec.npy
