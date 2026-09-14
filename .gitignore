@@ -1,0 +1,5 @@
+# Stanford CoreNLP
+stanford-corenlp-4.5.10/
+
+# Large GloVe embedding
+glove.840B.300d.txt
