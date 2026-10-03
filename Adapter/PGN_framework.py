@@ -53,6 +53,72 @@ class Bert_that_uses_Adapter(nn.module):
         hidden_states = self.adapter_forward(hidden_states) # This is where start using the adapter
         hidden_states = self.base.LayerNorm(hidden_states + input_tensor)
         return hidden_states
+    
+class AdapterPGNBertModel(nn.Module):
+    def __init__(self,
+                 name_or_path_or_model: Union[str, BertModel],
+                 adapter_size: int = 128,
+                 language_emb_size: int = 32,
+                 external_param: Union[bool, List[bool]] = False):
+        super().__init__()
+        if isinstance(name_or_path_or_model, str):
+            self.bert = BertModel.from_pretrained(name_or_path_or_model)
+        else:
+            self.bert = name_or_path_or_model
+
+        set_requires_grad(self.bert, False)
+
+        if isinstance(external_param, bool):
+            param_place = [external_param for _ in range(
+                self.bert.config.num_hidden_layers)]
+        elif isinstance(external_param, list):
+            param_place = [False for _ in range(
+                self.bert.config.num_hidden_layers)]
+            for i, e in enumerate(external_param, 1):
+                param_place[-i] = e
+        else:
+            raise ValueError("wrong type of external_param!")
+
+        self.adapters = nn.ModuleList([nn.ModuleList([
+                AdapterWithParameterGen(self.bert.config.hidden_size, language_emb_size, adapter_size),
+                AdapterWithParameterGen(self.bert.config.hidden_size, language_emb_size, adapter_size)
+            ]) for e in param_place
+        ])
+
+        for i, layer in enumerate(self.bert.encoder.layer):
+            layer.output = AdapterBertOutput(
+                layer.output, self.adapters[i][0].forward)
+            set_requires_grad(layer.output.base.LayerNorm, True)
+            layer.attention.output = AdapterBertOutput(
+                layer.attention.output, self.adapters[i][1].forward)
+            set_requires_grad(layer.attention.output.base.LayerNorm, True)
+
+        self.output_dim = self.bert.config.hidden_size
+
+        # if word_piece == 'first':
+        #     self.word_piece = None
+        # else:  # mean of pieces
+        #     offset = torch.tensor([0], dtype=torch.long)
+        #     self.word_piece = lambda x: embedding_bag(
+        #         x, self.bert.embeddings.word_embeddings.weight, offset.to(x.device))
+
+    def forward(self,
+                input_ids: torch.Tensor,
+                token_type_ids: torch.LongTensor = None,
+                mask: torch.Tensor = None,
+                bert_pieces: torch.LongTensor = None
+                ) -> torch.Tensor:
+        inputs_embeds = self.bert.embeddings.word_embeddings(input_ids)
+        # if self.word_piece is not None and word_pieces is not None:
+        #     for (s, w), pieces in word_pieces.items():
+        #         inputs_embeds[s, w, :] = self.word_piece(pieces)
+
+        attention_mask = None if mask is None else mask.float()
+        bert_output = self.bert(attention_mask=attention_mask, inputs_embeds=inputs_embeds, token_type_ids=token_type_ids)
+        output = torch.bmm(bert_pieces, bert_output[self.bert_layers - 1])
+        # return bert_output[0]
+        return output
 
 # Class untuk  dibuat khusus untuk jadi tempat yang manggil Adapter(dari repo AdapterPGNBertOutput) OKK
-# Class untuk menghubungkan si adapter dengan bert(dari repo AdapterPGNBertModel)
+# Class untuk menghubungkan si adapter dengan bert(dari repo AdapterPGNBertModel);
+#   Pastikan dicocokan kan dengan class lain
